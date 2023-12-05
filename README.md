@@ -1,2 +1,3 @@
 # pytopmod
-A Python implementation of TopMod
+
+An experimental Python implementation of TopMod.
