@@ -1,3 +1,4 @@
+"""Manifold-preserving operators on DCEL Meshes."""
 import itertools
 from typing import Generator, Optional
 
@@ -65,10 +66,10 @@ def insert_edge(
   edge_2_node = mesh.edge_nodes[edge_2]
 
   # 1.1 - Find the 2nd edges for each corner.
-  # Pick the next edge at the other vertex in edge_1.
+  # Pick the next edge at the opposite vertex in edge_1.
   edge_1_2 = (edge_1_node.vertex_2_next if edge_1_node.vertex_1 == vertex_1
               else edge_1_node.vertex_1_next)
-  # Pick the next edge at the other vertex in edge_2.
+  # Pick the next edge at the opposite vertex in edge_2.
   edge_2_2 = (edge_2_node.vertex_2_next if edge_2_node.vertex_1 == vertex_1
               else edge_2_node.vertex_2_next)
 
@@ -157,7 +158,7 @@ def insert_edge(
 
 def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
   old_edge_node = mesh.edge_nodes[old_edge]
-  # Find the edges before and after the edge in the rotation of vertex_1.
+  # 1.1 - Find the edges before and after the edge in the rotation of vertex_1.
   vertex_1_rotation = list(vertex_trace(mesh, old_edge_node.vertex_1))
   vertex_1_previous = vertex_1_rotation[
       vertex_1_rotation.index(old_edge) - 1 % len(vertex_1_rotation)]
@@ -165,7 +166,7 @@ def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
   vertex_1_next = vertex_1_rotation[
       vertex_1_rotation.index(old_edge) + 1 % len(vertex_1_rotation)]
 
-  # Find the edges before and after the edge in the rotation of vertex_2.
+  # 1.2 - Find the edges before and after the edge in the rotation of vertex_2.
   vertex_2_rotation = list(vertex_trace(mesh, old_edge_node.vertex_2))
   vertex_2_previous = vertex_2_rotation[
       vertex_2_rotation.index(old_edge) - 1 % len(vertex_2_rotation)]
@@ -176,9 +177,9 @@ def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
   face_1 = old_edge_node.face_1
   face_2 = old_edge_node.face_2
 
-  # Non-cofacial deletion.
+  # 2 - Non-cofacial deletion.
   if face_1 != face_2:
-    # Update the face information.
+    # 2.1 - Update the face information.
     # Create a new face.
     new_face = mesh.create_face()
 
@@ -195,7 +196,7 @@ def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
     mesh.delete_face(face_1)
     mesh.delete_face(face_2)
 
-    # Update the edge information to delete the edge.
+    # 2.2 - Update the edge information to delete the edge.
     if vertex_1_previous_node.vertex_1 == old_edge_node.vertex_1:
       vertex_1_previous_node.vertex_1_next = vertex_1_next
     else:
@@ -208,9 +209,9 @@ def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
     # Delete the edge.
     mesh.delete_edge(old_edge)
 
-  # Cofacial deletion.
+  # 3 - Cofacial deletion.
   else:
-    # Update the edge information to delete the edge.
+    # 3.1 - Update the edge information to delete the edge.
     if vertex_1_previous_node.vertex_1 == old_edge_node.vertex_1:
       vertex_1_previous_node.vertex_1_next = vertex_1_next
     else:
@@ -223,7 +224,7 @@ def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
     # Delete the edge.
     mesh.delete_edge(old_edge)
 
-    # Update the face information.
+    # 3.2 - Update the face information.
     # Create two new faces.
     new_face_1 = mesh.create_face()
     new_face_2 = mesh.create_face()
