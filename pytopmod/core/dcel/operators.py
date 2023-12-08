@@ -22,7 +22,7 @@ def vertex_trace(
   yield first_edge
 
   node = mesh.edge_nodes[first_edge]
-  edge = node.vertex_1 if node.vertex_1 == vertex else node.vertex_2
+  edge = node.vertex_1_next if node.vertex_1 == vertex else node.vertex_2_next
 
   while edge != first_edge:
     yield edge
@@ -66,26 +66,22 @@ def insert_edge(
   edge_2_node = mesh.edge_nodes[edge_2]
 
   # 1.1 - Find the 2nd edges for each corner.
-  # Pick the next edge at the opposite vertex in edge_1.
-  edge_1_2 = (edge_1_node.vertex_2_next if edge_1_node.vertex_1 == vertex_1
-              else edge_1_node.vertex_1_next)
-  # Pick the next edge at the opposite vertex in edge_2.
-  edge_2_2 = (edge_2_node.vertex_2_next if edge_2_node.vertex_1 == vertex_1
+  edge_1_2 = (edge_1_node.vertex_1_next if edge_1_node.vertex_1 == vertex_1
+              else edge_1_node.vertex_2_next)
+  edge_2_2 = (edge_2_node.vertex_1_next if edge_2_node.vertex_1 == vertex_2
               else edge_2_node.vertex_2_next)
 
   # 1.2 - Find the faces that contain each corner.
-  # Pick the face from edge_1 which contains (edge_1, edge_1_2) in its boundary.
-  face_1 = edge_1_node.face_1 if (edge_1, edge_1_2) in itertools.pairwise(
-      face_trace(mesh, edge_1_node.face_1)) else edge_1_node.face_2
-  # Pick the face from edge_2 which contains (edge_2, edge_2_2) in its boundary.
-  face_2 = edge_2_node.face_1 if (edge_2, edge_2_2) in itertools.pairwise(
-      face_trace(mesh, edge_2_node.face_1)) else edge_2_node.face_2
+  face_1 = (edge_1_node.face_1 if edge_1_node.vertex_1 ==
+            vertex_1 else edge_1_node.face_2)
+  face_2 = (edge_2_node.face_1 if edge_2_node.vertex_1 ==
+            vertex_2 else edge_1_node.face_2)
 
   # Set the vertex and edge information for the new edge.
   # 2 - Create a new edge node.
   new_edge = mesh.create_edge(
       vertex_1, vertex_2,
-      FaceKey(''), FaceKey(''),  # Temporary dummy face keys.
+      face_1, face_2,
       edge_1_2, edge_2_2)
   new_edge_node = mesh.edge_nodes[new_edge]
 
@@ -95,8 +91,8 @@ def insert_edge(
     # Create a new face.
     new_face = mesh.create_face()
     # Traverse the corners' faces and replace face_1 and face_2 by the new face.
-    for edge in itertools.chain(face_trace(mesh, face_1),
-                                face_trace(mesh, face_2)):
+    for edge in list(itertools.chain(face_trace(mesh, face_1),
+                                     face_trace(mesh, face_2))):
       node = mesh.edge_nodes[edge]
       if node.face_1 in (face_1, face_2):
         node.face_1 = new_face
@@ -137,19 +133,19 @@ def insert_edge(
     new_face_2 = mesh.create_face()
 
     # Starting from one direction of the new edge, replace face_1 by new_face_1.
-    for edge in face_trace(mesh, face_1, start_edge=new_edge):
+    for edge in list(face_trace(mesh, face_1, start_edge=edge_1_2)):
       edge_node = mesh.edge_nodes[edge]
       if edge_node.face_1 == face_1:
         edge_node.face_1 = new_face_1
-      if edge_node.face_2 == face_1:
-        edge_node.face_2 == face_1
+      else:
+        edge_node.face_2 = new_face_1
 
-    # Starting the other direction, replace face_1 by new_face_2.
-    for edge in face_trace(mesh, face_2, start_edge=new_edge):
+    # Starting from the opposite direction, replace face_1 by new_face_2.
+    for edge in list(face_trace(mesh, face_1, start_edge=edge_2_2)):
       edge_node = mesh.edge_nodes[edge]
       if edge_node.face_1 == face_1:
         edge_node.face_1 = new_face_2
-      if edge_node.face_2 == face_1:
+      else:
         edge_node.face_2 = new_face_2
 
     # Delete face_1 == face_2.
@@ -158,6 +154,7 @@ def insert_edge(
 
 def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
   old_edge_node = mesh.edge_nodes[old_edge]
+
   # 1.1 - Find the edges before and after the edge in the rotation of vertex_1.
   vertex_1_rotation = list(vertex_trace(mesh, old_edge_node.vertex_1))
   vertex_1_previous = vertex_1_rotation[
@@ -184,8 +181,8 @@ def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
     new_face = mesh.create_face()
 
     # Traverse face_1 and face_2, replace face_1 and face_2 with new_face.
-    for edge in itertools.chain(
-            face_trace(mesh, face_1), face_trace(mesh, face_2)):
+    for edge in list(itertools.chain(
+            face_trace(mesh, face_1), face_trace(mesh, face_2))):
       edge_node = mesh.edge_nodes[edge]
       if edge_node.face_1 in (face_1, face_2):
         edge_node.face_1 = new_face
@@ -229,18 +226,18 @@ def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
     new_face_1 = mesh.create_face()
     new_face_2 = mesh.create_face()
 
-    # Starting from vertex_1_previous, traverse a face and replace face_1 by
+    # Starting from vertex_1_previous, traverse the face and replace face_1 by
     # new_face_1.
-    for edge in face_trace(mesh, face_1, start_edge=vertex_1_previous):
+    for edge in list(face_trace(mesh, face_1, start_edge=vertex_1_previous)):
       edge_node = mesh.edge_nodes[edge]
       if edge_node.face_1 == face_1:
         edge_node.face_1 = new_face_1
       if edge_node.face_2 == face_1:
         edge_node.face_2 == face_1
 
-    # Starting from vertex_2_previous, traverse a face and replace face_1 by
+    # Starting from vertex_2_previous, traverse the face and replace face_1 by
     # new_face_2.
-    for edge in face_trace(mesh, face_2, start_edge=vertex_2_previous):
+    for edge in list(face_trace(mesh, face_1, start_edge=vertex_2_previous)):
       edge_node = mesh.edge_nodes[edge]
       if edge_node.face_1 == face_1:
         edge_node.face_1 = new_face_2

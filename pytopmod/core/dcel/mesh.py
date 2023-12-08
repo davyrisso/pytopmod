@@ -50,6 +50,7 @@ class DCELMesh(Mesh):
     return edge
 
   def delete_edge(self, edge: EdgeKey):
+    del self.edge_nodes[edge]
     return self.edges.delete(edge)
 
   def vertex_edges(self, vertex: VertexKey) -> Generator[EdgeKey, None, None]:
