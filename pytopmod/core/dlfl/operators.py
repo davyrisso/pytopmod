@@ -1,7 +1,7 @@
 """Manifold-preserving operators on DLFL Meshes."""
 from typing import Generator, Tuple, cast
 
-from pytopmod.core.dlfl import circular_list
+from pytopmod.core import circular_list
 from pytopmod.core.dlfl.mesh import DLFLMesh
 from pytopmod.core.face import FaceKey
 from pytopmod.core.geometry import Point3D
