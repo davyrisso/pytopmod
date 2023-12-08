@@ -2,6 +2,7 @@
 import itertools
 from typing import Generator, Optional
 
+from pytopmod.core import circular_list
 from pytopmod.core.dcel.mesh import DCELMesh
 from pytopmod.core.edge import EdgeKey
 from pytopmod.core.face import FaceKey
@@ -157,19 +158,15 @@ def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
 
   # 1.1 - Find the edges before and after the edge in the rotation of vertex_1.
   vertex_1_rotation = list(vertex_trace(mesh, old_edge_node.vertex_1))
-  vertex_1_previous = vertex_1_rotation[
-      vertex_1_rotation.index(old_edge) - 1 % len(vertex_1_rotation)]
+  vertex_1_previous = circular_list.previous_item(vertex_1_rotation, old_edge)
   vertex_1_previous_node = mesh.edge_nodes[vertex_1_previous]
-  vertex_1_next = vertex_1_rotation[
-      vertex_1_rotation.index(old_edge) + 1 % len(vertex_1_rotation)]
+  vertex_1_next = circular_list.next_item(vertex_1_rotation, old_edge)
 
   # 1.2 - Find the edges before and after the edge in the rotation of vertex_2.
   vertex_2_rotation = list(vertex_trace(mesh, old_edge_node.vertex_2))
-  vertex_2_previous = vertex_2_rotation[
-      vertex_2_rotation.index(old_edge) - 1 % len(vertex_2_rotation)]
+  vertex_2_previous = circular_list.previous_item(vertex_2_rotation, old_edge)
   vertex_2_previous_node = mesh.edge_nodes[vertex_2_previous]
-  vertex_2_next = vertex_2_rotation[
-      vertex_2_rotation.index(old_edge) + 1 % len(vertex_2_rotation)]
+  vertex_2_next = circular_list.next_item(vertex_2_rotation, old_edge)
 
   face_1 = old_edge_node.face_1
   face_2 = old_edge_node.face_2
@@ -181,8 +178,8 @@ def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
     new_face = mesh.create_face()
 
     # Traverse face_1 and face_2, replace face_1 and face_2 with new_face.
-    for edge in list(itertools.chain(
-            face_trace(mesh, face_1), face_trace(mesh, face_2))):
+    for edge in list(itertools.chain(face_trace(mesh, face_1),
+                                     face_trace(mesh, face_2))):
       edge_node = mesh.edge_nodes[edge]
       if edge_node.face_1 in (face_1, face_2):
         edge_node.face_1 = new_face
@@ -233,7 +230,7 @@ def delete_edge(mesh: DCELMesh, old_edge: EdgeKey):
       if edge_node.face_1 == face_1:
         edge_node.face_1 = new_face_1
       if edge_node.face_2 == face_1:
-        edge_node.face_2 == face_1
+        edge_node.face_2 = face_1
 
     # Starting from vertex_2_previous, traverse the face and replace face_1 by
     # new_face_2.
