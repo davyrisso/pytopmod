@@ -14,4 +14,4 @@ readme = "README.md"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"pytopmod" = ["py.typed"]
+pytopmod = ["py.typed"]
