@@ -9,3 +9,6 @@ authors = [
   {name = "Davy Risso", email = "davy.risso@gmail.com"},
 ]
 readme = "README.md"
+
+[tool.setuptools.package-data]
+"pytopmod" = ["py.typed"]
